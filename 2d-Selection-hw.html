@@ -1,75 +1,70 @@
 <!doctype html>
 <html>
-
 <head>
     <meta charset="UTF-8">
     <title>Untitled Document</title>
     <script src="https://d3js.org/d3.v3.js"></script>
     <style>
-        body {
+        body{
             background: #eee;
         }
-        
-        .axis path,
-        .axis line {
+        .axis path, .axis line{
             fill: none;
             stroke: black;
             shape-rendering: auto;
+            
         }
-        
-        .axis text {
+        .axis text{
             font-size: 15px;
-            /*            fill: blue;*/
+/*            fill: blue;*/
         }
-        
-        #tooltip {
-            position: absolute;
-            left: 20px;
-            top: 100px;
-            background: #fff;
-            width: 150px;
-            height: auto;
-            padding: 0px 10px;
-            border-radius: 5px;
-            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3);
+        #tooltip{
+              position: absolute;
+               left: 20px; 
+               top:  100px; 
+              background: #fff;
+              width: 150px;
+              height: auto;
+              padding: 0px 10px;
+              border-radius: 5px;
+              box-shadow: 5px 5px 10px rgba(0,0,0,0.3);
         }
-        
-        #tooltip.hidden {
-            display: none;
-        }
+        #tooltip.hidden{
+              display: none;
+        } 
     </style>
 </head>
-
 <body>
-    <div id="tooltip" class="hidden">
-        <p><strong id="city">Hello</strong></p>
-        <p id="industry">tooltip</p>
+   <div id="tooltip" class="hidden">
+      <p><strong id="city">Hello</strong></p>
+      <p id="industry">tooltip</p>
     </div>
     <script>
         // 1. 定義width, height, padding, letterList變數
         var w = 900;
         var h = 600;
         var padding = 100;
-        var letterList = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "M", "N", "O", "P", "Q", "T", "U", "V", "W", "X", "Z"];
-
+        var letterList = ["A","B","C","D","E","F","G","H","I","J","K","M","N","O","P","Q","T","U","V","W","X","Z"];
+        
         //2. 建立svg()畫布環境
-
-        svg();
-
+        
+        svg();       
+        
         //3. 用d3讀取csv
-        d3.csv("stationzz.csv", function (dataSet) {
-            bind(dataSet);
-            render(dataSet);
-            //btnList(dataSet);
-
+        d3.csv("invoice.csv", function(dataSet){
+           
+           bind(dataSet);
+           render(dataSet);
+            btnList(dataSet);
+            
         });
-
-
-        function svg() {
-            d3.select("body").append("svg").attr({
-                width: w,
-                height: h
-            });
+        
+        
+        function svg(){
+           d3.select("body").append("svg").attr({
+               width: w,
+               height: h
+           });
             d3.select("svg").append("g").append("rect").attr({
                 width: "100%",
                 height: "100%",
@@ -77,99 +72,89 @@
             });
             d3.select("svg")
                 .append("g").attr("id", "axisX") //g means group.
-
+            
             d3.select("svg")
                 .append("g").attr("id", "axisY") //g means group.
         }
-
+        
         //4. 建立bind()
 
-        function bind(dataSet) {
+        function bind(dataSet){
             var selection = d3.select("svg")
-                .selectAll("circle")
-                .data(dataSet);
-            var arr3 = dataSet.map(function(d) {
-                return d.code;
-            });
-            console.log(arr3);
+                                .selectAll("circle")
+                                .data(dataSet);
+            
             selection.enter().append("circle");
             selection.exit().remove();
         }
-
-        function render(dataSet) {
+        
+        function render(dataSet){
             //5. 定義xScale,yScale,rScale, fScale比例尺(range目的在決定在svg上位置)
-            for (var i = 1; i < 10; i++) {
-                var xScale = d3.scale.linear()
-                    .domain([1, 78])
-                    .range([padding, w - padding]);
-                var yScale = d3.scale.linear()
+            
+           var xScale = d3.time.scale()
                     .domain([
-                        d3.min(dataSet, function (d) {
-                            return +d[i];
-                        }),
-                        d3.max(dataSet, function (d) {
-                            return +d[i];
-                        })])
-                    .range([h - padding, padding]);
-                var rScale = d3.scale.linear()
+                    new Date("2013-01-01"),
+                    new Date("2016-08-01")
+                    ])
+                    .range([padding, w-padding]);
+           var yScale = d3.scale.linear()
+                    .domain([0,d3.max(dataSet,function(d){
+                        return +d.number;
+                    })])
+                    .range([h-padding,padding]);
+           var rScale = d3.scale.linear()
                     .domain([
-                        d3.min(dataSet, function (d) {
-                            return +d.acc;
+                        d3.min(dataSet,function(d){
+                            return +d.amount;
                         }),
-                        d3.max(dataSet, function (d) {
-                            return +d.acc;
-                        })])
-                    .range([5, 30]);
-                var fScale = d3.scale.category20();
-                //xAxis
-                var xAxis = d3.svg.axis()
-                    .scale(xScale)
-                    .orient("bottom");
-                //.ticks(5);
-
-                d3.select("g#axisX") //g means group.
-                    .attr("class", "axis")
-                    .attr("transform", "translate(0," + (h - padding + 15) + ")")
-                    .call(xAxis);
-                //yAxis
-
-                var yAxis = d3.svg.axis()
-                    .scale(yScale)
-                    .orient("left");
-                //.ticks(5);
-
-                d3.select("g#axisY") //g means group.
-                    .attr("class", "axis")
-                    .attr("transform", "translate(" + (padding - 12) + ",0)")
-                    .call(yAxis);
-
-                //6. 建立render()繪圖
-                d3.selectAll("circle")
-                    .attr({
-                        cx: function (d) {
-                            //console.log(d.acc);
-                            var tmpDate = i;
-                            return xScale(tmpDate);
-                        },
-                        cy: function (d) {
-                            //console.log(i);
-                            return yScale(+d[i]);
-                        },
-                        r: function (d) {
-                            return rScale(+d.acc);
-                        },
-                        fill: function (d) {
-                            return fScale(d.code);
-                        }
-                    });
-            }
-        }
-        /*
-            .on("mouseover",function(d){
+                        d3.max(dataSet,function(d){
+                            return +d.amount;
+                    })])
+                    .range([5,30]);
+           var fScale = d3.scale.category20();
+            //xAxis
+            var xAxis = d3.svg.axis()
+                        .scale(xScale)
+                        .orient("bottom");
+                        //.ticks(5);
+            
+            d3.select("g#axisX") //g means group.
+                .attr("class","axis")
+                .attr("transform","translate(0,"+(h-padding+15)+")")
+                .call(xAxis);
+            //yAxis
+            
+            var yAxis = d3.svg.axis()
+                        .scale(yScale)
+                        .orient("left");
+                        //.ticks(5);
+            
+            d3.select("g#axisY") //g means group.
+                .attr("class","axis")
+                .attr("transform","translate("+(padding-12)+",0)")
+                .call(yAxis);
+            
+            //6. 建立render()繪圖
+            d3.selectAll("circle")
+              .attr({
+                cx: function(d) {
+                    var tmpDate = new Date(d.date);
+                    return xScale(tmpDate);
+                },
+                cy: function(d) {
+                    return yScale(+d.number);
+                },
+                r: function(d) {
+                    return rScale(+d.amount);
+                },
+                fill: function(d) {
+                    return fScale(d.cid);
+                }
+              }).on("mouseover",function(d){
                     var cx =d3.select(this).attr("cx");
                     var cy =d3.select(this).attr("cy");
                 
-                    //console.log(d);
+                    console.log(d);
                     var tooltip = d3.select("#tooltip")
                                 .style({
                                 left: (+cx+10)+"px",
@@ -184,9 +169,9 @@
                 }).on("mouseout",function(d){
                     d3.select("#tooltip").classed("hidden",true);
                 });
-//                .append("title").text(function(d){
-//                    return d.city+"\r\n"+d.industry+"\r\n"+d.number;
-//                });
+                /*.append("title").text(function(d){
+                    return d.city+"\r\n"+d.industry+"\r\n"+d.number;
+                });*/
         }
         
         function btnList(dataSet){
@@ -252,9 +237,8 @@
   //去看每個array，如果沒出現過就加到n中      
 
   return n;
-}*/
+}
     </script>
 
 </body>
-
 </html>
