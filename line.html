@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<head>
+    <meta charset="utf-8">
+    <title>FinialProject</title>
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <style>
+        /* set the CSS */
+        
+        body {
+            font: 12px Arial;
+        }
+        
+        path {
+            stroke: steelblue;
+            stroke-width: 4;
+            fill: none;
+        }
+        
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: grey;
+            stroke-width: 2;
+            shape-rendering: crispEdges;
+        }
+        
+        select {
+            display: block;
+            width: 100%;
+        }
+        
+        #sel {
+            height: 50px;
+            display: block;
+        }
+        
+        .overlay {
+            fill: none;
+            pointer-events: all;
+        }
+        
+        .focus circle {
+            fill: none;
+            stroke: steelblue;
+        }
+        
+        .announce{
+            width:500px;
+            height: 200px;
+            overflow: auto;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="sel">
+        <select></select>
+    </div>
+<!--
+    <div class="g1">
+        <div class="announce">
+
+             load the d3.js library 
+        </div>
+        <input type="text" class="content">
+        <input type="button" onclick="lauch()" value="發文">
+    </div>
+    <script>
+        function lauch() {
+            var con = d3.select(".content").property("value");
+            d3.select(".announce").append("div").text(con);
+        };
+    </script>
+-->
+
+
+    <script>
+        // Set the dimensions of the canvas / graph
+        var margin = {
+                top: 30,
+                right: 20,
+                bottom: 30,
+                left: 50
+            },
+            width = 700 - margin.left - margin.right,
+            height = 270 - margin.top - margin.bottom;
+
+        // Parse the date / time
+        //var parseDate = d3.time.format("%d-%b-%y").parse;
+
+
+
+        // Define the line
+
+        //station("466940");
+        //sta("467440");
+        //sta("C1I230");
+        d3.csv("code.csv", function (data) {
+            var industryArr = data.map(function (d) {
+                return d.code;
+            });
+            //console.log(industryArr);
+            var selection = d3.select("body")
+                .select("select")
+                .selectAll("option")
+                .data(industryArr);
+
+            selection.enter()
+                .append("option")
+                .attr({
+                    value: function (d) {
+                        return d;
+                    }
+                })
+                .text(function (d) {
+                    return d;
+                });
+            d3.select("select").on("change", function () {
+                var value =
+                    d3.select("select").property("value");
+                console.log(value);
+                sta(value);
+            })
+
+            //                    .on("click", function(d){
+            //                        update(d);
+            //            });
+            selection.exit().remove();
+
+        });
+
+        function sta(s) {
+            // Set the ranges
+            var x = d3.scale.linear().range([0, width]);
+            var y = d3.scale.linear().range([height, 0]);
+
+            // Define the axes
+            var xAxis = d3.svg.axis().scale(x)
+                .orient("bottom").ticks(5);
+
+            var yAxis = d3.svg.axis().scale(y)
+                .orient("left").ticks(5);
+
+
+            var station = s;
+            var valueline = d3.svg.line()
+                .x(function (d) {
+                    return x(+d.hour);
+                })
+                .y(function (d) {
+                    //console.log(+d.hour);
+                    return y(d[station]);
+                });
+            console.log(valueline);
+
+            // Adds the svg canvas
+            var svg = d3.select("body")
+                .append("svg").on("click", function (d) {
+                    d3.select(this).remove();
+                    return d;
+                }).attr("width", width + margin.left + margin.right)
+                .attr("height", height + margin.top + margin.bottom)
+                .append("g")
+                .attr("transform",
+                    "translate(" + margin.left + "," + margin.top + ")");
+            var padding = 10;
+            //            d3.selectAll("svg").attr({
+            //                x: function(d,i){
+            //                    return 10+padding+42*i;
+            //                },
+            //                y: height-padding+20
+            //            }).text(function(d){
+            //                return d;
+            //            });
+
+            // Get the data
+            //d3.csv("code.csv"), function(code){
+            d3.csv("station.csv", function (error, data) {
+                //console.log(data[79]);
+                data.forEach(function (d) {
+                    //console.log(d.code);
+                    d.date = +d.hour;
+                    //console.log(d.date);
+                    d.close = +d[station];
+                    //console.log(d.close);
+                });
+
+                var bisectDate = d3.bisector(function (d) {
+                        return d.date;
+                    }).left,
+                    formatValue = d3.format(",.2f"),
+                    formatCurrency = function (d) {
+                        return formatValue(d) + "mm";
+                    };
+
+                svg.append("text").attr({
+                    x: width / 2 - 20,
+                    y: -10,
+                    "font-size": 20,
+                    "font-family": "arial"
+                }).text(station + " 雨量站");
+                // Scale the range of the data
+                x.domain(d3.extent(data, function (d) {
+                    //console.log(d.C1K350);
+                    return d.date;
+                }));
+                y.domain([0, d3.max(data, function (d) {
+                    return d.close;
+                })]);
+
+                // Add the valueline path.
+                svg.append("path")
+                    .attr("class", "line")
+                    .attr("d", valueline(data));
+
+                // Add the X Axis
+                svg.append("g")
+                    .attr("class", "x axis")
+                    .attr("transform", "translate(0," + height + ")")
+                    .call(xAxis);
+
+                // Add the Y Axis
+                svg.append("g")
+                    .attr("class", "y axis")
+                    .call(yAxis);
+
+
+                var focus = svg.append("g")
+                    .attr("class", "focus")
+                    .style("display", "none");
+
+                focus.append("circle")
+                    .attr("r", 6);
+
+                focus.append("text")
+                    .attr("x", 9)
+                    .attr("dy", ".35em");
+
+                svg.append("rect")
+                    .attr("class", "overlay")
+                    .attr("width", width)
+                    .attr("height", height)
+                    .on("mouseover", function () {
+                        focus.style("display", null);
+                    })
+                    .on("mouseout", function () {
+                        focus.style("display", "none");
+                    })
+                    .on("mousemove", mousemove);
+
+                function mousemove() {
+                    var x0 = x.invert(d3.mouse(this)[0]),
+                        i = bisectDate(data, x0, 1),
+                        d0 = data[i - 1],
+                        d1 = data[i],
+                        d = x0 - d0.date > d1.date - x0 ? d1 : d0;
+                    //console.log(d.date);
+
+                    focus.attr("transform", "translate(" + x(d.date) + "," + y(d.close) + ")");
+                    console.log(y(d.close));
+                    focus.select("text").text(formatCurrency(d.close));
+                }
+            });
+        };
+
+
+        //};
+    </script>
+</body>
